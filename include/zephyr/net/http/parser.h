@@ -102,7 +102,8 @@ enum flags {
 	F_TRAILING              = 1 << 4,
 	F_UPGRADE               = 1 << 5,
 	F_SKIPBODY              = 1 << 6,
-	F_CONTENTLENGTH         = 1 << 7
+	F_CONTENTLENGTH         = 1 << 7,
+	F_CONTENTRANGE		    = 1 << 8
 };
 
 enum http_errno {
