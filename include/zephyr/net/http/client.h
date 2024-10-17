@@ -197,9 +197,12 @@ struct http_response {
 	 */
 	uint16_t http_status_code;
 
-	uint8_t cl_present : 1;       /**< Is Content-Length field present */
-	uint8_t body_found : 1;       /**< Is message body found */
-	uint8_t message_complete : 1; /**< Is HTTP message parsing complete */
+	struct http_content_range content_range;
+
+	uint8_t cl_present : 1;
+	uint8_t cr_present : 1;
+	uint8_t body_found : 1;
+	uint8_t message_complete : 1;
 };
 
 /** HTTP client internal data that the application should not touch
