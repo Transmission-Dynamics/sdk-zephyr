@@ -191,7 +191,10 @@ struct http_response {
 	 */
 	uint16_t http_status_code;
 
+	struct http_content_range content_range;
+
 	uint8_t cl_present : 1;
+	uint8_t cr_present : 1;
 	uint8_t body_found : 1;
 	uint8_t message_complete : 1;
 };
