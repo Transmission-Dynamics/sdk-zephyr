@@ -242,6 +242,9 @@ struct uarte_nrfx_data {
 /* If enabled then UARTE peripheral is using memory which is cacheable. */
 #define UARTE_CFG_FLAG_CACHEABLE BIT(3)
 
+/* IF enabled then UARTE peripheral does not change pinctrl automatically. */
+#define UARTE_CFG_FLAG_AUTO_PINCTRL_DISABLE BIT(31)
+
 /* Macro for converting numerical baudrate to register value. It is convenient
  * to use this approach because for constant input it can calculate nrf setting
  * at compile time.
@@ -2099,7 +2102,10 @@ static void uarte_pm_resume(const struct device *dev)
 {
 	const struct uarte_nrfx_config *cfg = dev->config;
 
-	(void)pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_DEFAULT);
+    if((cfg->flags & UARTE_CFG_FLAG_AUTO_PINCTRL_DISABLE) == 0)
+    {
+	    (void)pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_DEFAULT);
+    }
 
 	if (IS_ENABLED(CONFIG_PM_DEVICE_RUNTIME) || !LOW_POWER_ENABLED(cfg)) {
 		uarte_periph_enable(dev);
@@ -2174,7 +2180,10 @@ static void uarte_pm_suspend(const struct device *dev)
 
 	nrf_uarte_disable(uarte);
 
-	(void)pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_SLEEP);
+    if((cfg->flags & UARTE_CFG_FLAG_AUTO_PINCTRL_DISABLE) == 0)
+    {
+	    (void)pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_SLEEP);
+    }
 }
 
 static int uarte_nrfx_pm_action(const struct device *dev, enum pm_device_action action)
@@ -2383,7 +2392,9 @@ static int uarte_instance_init(const struct device *dev,
 			(!IS_ENABLED(CONFIG_HAS_NORDIC_DMM) ? 0 :	       \
 			  (UARTE_IS_CACHEABLE(idx) ?			       \
 				UARTE_CFG_FLAG_CACHEABLE : 0)) |	       \
-			USE_LOW_POWER(idx),				       \
+			USE_LOW_POWER(idx)				   |            \
+            (IS_ENABLED(CONFIG_UART_##idx##_AUTO_PINCTRL_DISABLE) ? \
+            UARTE_CFG_FLAG_AUTO_PINCTRL_DISABLE : 0),               \
 		UARTE_DISABLE_RX_INIT(UARTE(idx)),			       \
 		.poll_out_byte = &uarte##idx##_poll_out_byte,		       \
 		.poll_in_byte = &uarte##idx##_poll_in_byte,		       \
