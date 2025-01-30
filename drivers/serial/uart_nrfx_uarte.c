@@ -319,6 +319,9 @@ struct uarte_nrfx_data {
  */
 #define UARTE_GET_CUSTOM_BAUDRATE(f_pclk, baudrate) ((BIT(20) / (f_pclk / baudrate)) << 12)
 
+/* IF enabled then UARTE peripheral does not change pinctrl automatically. */
+#define UARTE_CFG_FLAG_AUTO_PINCTRL_DISABLE BIT(31)
+
 /* Macro for converting numerical baudrate to register value. It is convenient
  * to use this approach because for constant input it can calculate nrf setting
  * at compile time.
@@ -3057,6 +3060,11 @@ static void uarte_pm_resume(const struct device *dev)
 {
 	const struct uarte_nrfx_config *cfg = dev->config;
 
+    if((cfg->flags & UARTE_CFG_FLAG_AUTO_PINCTRL_DISABLE) == 0)
+    {
+	    (void)pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_DEFAULT);
+    }
+
 	if (IS_ENABLED(CONFIG_PM_DEVICE_RUNTIME) || !LOW_POWER_ENABLED(cfg)) {
 		(void)pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_DEFAULT);
 		uarte_periph_enable(dev);
@@ -3123,8 +3131,26 @@ static void uarte_pm_suspend(const struct device *dev)
 		wait_for_tx_stopped(dev);
 	}
 
-	(void)pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_SLEEP);
+#if UARTE_CROSS_DOMAIN_PINS_SUPPORTED
+	if (cfg->cross_domain && uarte_has_cross_domain_connection(cfg)) {
+#if UARTE_CROSS_DOMAIN_PINS_HANDLE
+		int err;
+
+		err = nrf_sys_event_release_global_constlat();
+		(void)err;
+		__ASSERT_NO_MSG(err >= 0);
+#else
+		__ASSERT(false, "NRF_SYS_EVENT needs to be enabled to use cross domain pins.\n");
+#endif
+	}
+#endif
+
 	nrf_uarte_disable(uarte);
+
+    if((cfg->flags & UARTE_CFG_FLAG_AUTO_PINCTRL_DISABLE) == 0)
+    {
+	    (void)pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_SLEEP);
+    }
 }
 
 static int uarte_nrfx_pm_action(const struct device *dev, enum pm_device_action action)
@@ -3443,7 +3469,9 @@ static int uarte_instance_deinit(const struct device *dev)
 			  UARTE_IS_CACHEABLE(idx)) ?			       \
 			   UARTE_CFG_FLAG_VOLATILE_BAUDRATE : 0) |	       \
 			UARTE_HAS_VAR_PRIO(idx) |			       \
-			USE_LOW_POWER(idx),				       \
+			USE_LOW_POWER(idx)				   |            \
+            (IS_ENABLED(CONFIG_UART_##idx##_AUTO_PINCTRL_DISABLE) ? \
+            UARTE_CFG_FLAG_AUTO_PINCTRL_DISABLE : 0),               \
 		UARTE_DISABLE_RX_INIT(UARTE(idx)),			       \
 		.poll_out_byte = &uarte##idx##_poll_out_byte,		       \
 		.poll_in_byte = &uarte##idx##_poll_in_byte,		       \
