@@ -199,7 +199,7 @@ static int image_mcuboot_state_res_fn(struct net_buf *nb, void *user_data)
 		};
 
 	if (!nb) {
-		image_info->status = MGMT_ERR_ETIMEOUT;
+		mcuboot_image_info->status = MGMT_ERR_ETIMEOUT;
 		goto out;
 	}
 
