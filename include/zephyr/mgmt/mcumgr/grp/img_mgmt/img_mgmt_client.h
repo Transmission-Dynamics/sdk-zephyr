@@ -67,6 +67,18 @@ struct mcumgr_image_state {
 };
 
 /**
+ * @brief MCUmgr mcuboot image response.
+ */
+struct mcumgr_mcuboot_image_state {
+    /** MCUBoot image status */
+    enum mcumgr_err_t status;
+    /** MCUBoot image version */
+    uint32_t version;
+    /** MCUBoot image slot */
+    uint32_t slot;
+};
+
+/**
  * @brief MCUmgr Image upload response.
  */
 struct mcumgr_image_upload {
@@ -180,6 +192,17 @@ int img_mgmt_client_state_write(struct img_mgmt_client *client, char *hash, bool
  * @return @ref mcumgr_err_t code on failure.
  */
 int img_mgmt_client_state_read(struct img_mgmt_client *client, struct mcumgr_image_state *res_buf);
+
+/**
+ * @brief Read active MCUBoot image slot and its version.
+ *
+ * @param client	IMG mgmt client object
+ * @param res_buf	Pointer for command response structure.
+ *
+ * @return 0 on success.
+ * @return @ref mcumgr_err_t code on failure.
+ */
+int img_mgmt_client_mcuboot_image_read(struct img_mgmt_client *client, struct mcumgr_mcuboot_image_state *res_buf);
 
 /**
  * @brief Erase selected Image Slot

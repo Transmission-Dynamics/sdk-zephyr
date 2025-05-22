@@ -35,6 +35,8 @@ LOG_MODULE_REGISTER(mcumgr_grp_img_client, CONFIG_MCUMGR_GRP_IMG_CLIENT_LOG_LEVE
 static struct img_mgmt_client *active_client;
 /* Image State read or set response pointer */
 static struct mcumgr_image_state *image_info;
+/* MCUBoot image response pointer */
+static struct mcumgr_mcuboot_image_state *mcuboot_image_info;
 /* Image upload response pointer */
 static struct mcumgr_image_upload *image_upload_buf;
 
@@ -180,6 +182,49 @@ out:
 		image_info->image_list_length = 0;
 	}
 	rc = image_info->status;
+	k_sem_give(user_data);
+	return rc;
+}
+
+static int image_mcuboot_state_res_fn(struct net_buf *nb, void *user_data)
+{
+	zcbor_state_t zsd[CONFIG_MCUMGR_SMP_CBOR_MAX_DECODING_LEVELS + 2];
+	int rc = 0;
+	uint32_t slot_num, version;
+	size_t decoded = 0;
+	struct zcbor_map_decode_key_val list_res_decode[] = {
+		/* Mandatory */
+		ZCBOR_MAP_DECODE_KEY_DECODER("version", zcbor_uint32_decode, &version),
+		ZCBOR_MAP_DECODE_KEY_DECODER("slot", zcbor_uint32_decode, &slot_num),
+		};
+
+	if (!nb) {
+		mcuboot_image_info->status = MGMT_ERR_ETIMEOUT;
+		goto out;
+	}
+
+	zcbor_new_decode_state(zsd, ARRAY_SIZE(zsd), nb->data, nb->len, 1, NULL, 0);
+
+    zcbor_map_decode_bulk_reset(list_res_decode, ARRAY_SIZE(list_res_decode));
+    /* Init buffer values */
+    slot_num = UINT32_MAX;
+    version = UINT32_MAX;
+
+    rc = zcbor_map_decode_bulk(zsd, list_res_decode, ARRAY_SIZE(list_res_decode),
+                    &decoded);
+    if (rc) {
+        LOG_ERR("Corrupted Image data %d", rc);
+        mcuboot_image_info->status = MGMT_ERR_EINVAL;
+        goto out;
+    }
+
+    /* Store parsed values */
+    mcuboot_image_info->version = version;
+    mcuboot_image_info->slot = slot_num;
+    mcuboot_image_info->status = MGMT_ERR_EOK;
+
+out:
+	rc = mcuboot_image_info->status;
 	k_sem_give(user_data);
 	return rc;
 }
@@ -558,6 +603,54 @@ int img_mgmt_client_state_read(struct img_mgmt_client *client, struct mcumgr_ima
 end:
 	rc = res_buf->status;
 	image_info = NULL;
+	active_client = NULL;
+	k_mutex_unlock(&mcumgr_img_client_grp_mutex);
+	return rc;
+}
+
+int img_mgmt_client_mcuboot_image_read(struct img_mgmt_client *client, struct mcumgr_mcuboot_image_state *res_buf)
+{
+	struct net_buf *nb;
+	int rc;
+	zcbor_state_t zse[CONFIG_MCUMGR_SMP_CBOR_MAX_DECODING_LEVELS];
+	bool ok;
+
+	k_mutex_lock(&mcumgr_img_client_grp_mutex, K_FOREVER);
+	active_client = client;
+	/* Init Response */
+	res_buf->version = UINT32_MAX;
+	res_buf->slot = UINT32_MAX;
+
+	mcuboot_image_info = res_buf;
+
+	nb = smp_client_buf_allocation(active_client->smp_client, MGMT_GROUP_ID_PERUSER,
+				       IMG_MGMT_ID_STATE, MGMT_OP_READ, SMP_MCUMGR_VERSION_1);
+	if (!nb) {
+		res_buf->status = MGMT_ERR_ENOMEM;
+		goto end;
+	}
+
+	zcbor_new_encode_state(zse, ARRAY_SIZE(zse), nb->data + nb->len, net_buf_tailroom(nb), 0);
+	ok = zcbor_map_start_encode(zse, 1) && zcbor_map_end_encode(zse, 1);
+	if (!ok) {
+		smp_packet_free(nb);
+		res_buf->status = MGMT_ERR_ENOMEM;
+		goto end;
+	}
+
+	nb->len = zse->payload - nb->data;
+	k_sem_reset(&mcumgr_img_client_grp_sem);
+	rc = smp_client_send_cmd(active_client->smp_client, nb, image_mcuboot_state_res_fn,
+				 &mcumgr_img_client_grp_sem, CONFIG_SMP_CMD_DEFAULT_LIFE_TIME);
+	if (rc) {
+		smp_packet_free(nb);
+		res_buf->status = rc;
+		goto end;
+	}
+	k_sem_take(&mcumgr_img_client_grp_sem, K_FOREVER);
+end:
+	rc = res_buf->status;
+	mcuboot_image_info = NULL;
 	active_client = NULL;
 	k_mutex_unlock(&mcumgr_img_client_grp_mutex);
 	return rc;
