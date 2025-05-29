@@ -15,6 +15,7 @@
 
 #include <stdlib.h>
 #include <zephyr/types.h>
+#include <zephyr/device.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,6 +57,16 @@ int uart_mcumgr_send(const uint8_t *data, int len);
  * @param rx_buf                The buffer to free.
  */
 void uart_mcumgr_free_rx_buf(struct uart_mcumgr_rx_buf *rx_buf);
+
+/**
+ * @brief Changes the mcumgr UART device.
+ *
+ * This function is used to change the mcumgr UART device. It should be called
+ * before any mcumgr operations are performed.
+ *
+ * @param dev                   The new mcumgr UART device.
+ */
+void uart_mcumgr_change_device(const struct device *dev);
 
 /**
  * @brief Registers an mcumgr UART receive handler.
