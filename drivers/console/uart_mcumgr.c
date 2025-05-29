@@ -18,7 +18,10 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(uart_mcumgr, CONFIG_MCUMGR_TRANSPORT_LOG_LEVEL);
 
-static const struct device *const uart_mcumgr_dev =
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(uart_mcumgr, CONFIG_MCUMGR_TRANSPORT_LOG_LEVEL);
+
+static const struct device * uart_mcumgr_dev =
 	DEVICE_DT_GET(DT_CHOSEN(zephyr_uart_mcumgr));
 
 /** Callback to execute when a valid fragment has been received. */
@@ -239,6 +242,13 @@ static void uart_mcumgr_setup(const struct device *uart)
 	uart_irq_rx_enable(uart);
 }
 #endif
+
+void uart_mcumgr_change_device(const struct device *dev)
+{
+	if (uart_mcumgr_dev != dev) {
+		uart_mcumgr_dev = dev;
+	}
+}
 
 void uart_mcumgr_register(uart_mcumgr_recv_fn *cb)
 {
