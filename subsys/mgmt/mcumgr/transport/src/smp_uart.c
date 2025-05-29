@@ -93,7 +93,7 @@ static int smp_uart_tx_pkt(struct net_buf *nb)
 	return rc;
 }
 
-static int smp_uart_init(void)
+int smp_uart_init(void)
 {
 	int rc;
 
@@ -113,5 +113,3 @@ static int smp_uart_init(void)
 
 	return rc;
 }
-
-SYS_INIT(smp_uart_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
