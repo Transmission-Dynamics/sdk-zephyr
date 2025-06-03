@@ -23,7 +23,7 @@ config SMP_CMD_DEFAULT_LIFE_TIME
 
 config SMP_CMD_RETRY_TIME
 	int "SMP command re-send period in ms"
-	range 100 1000
+	range 100 2000
 	default 500
 	help
 	  The time (in ms) which the SMP client will wait for a response before re-sending

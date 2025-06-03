@@ -316,7 +316,7 @@ int smp_client_send_cmd(struct smp_client_object *smp_client, struct net_buf *nb
 	cmd_req->cb = cb;
 	cmd_req->smp_client = smp_client;
 	cmd_req->user_data = user_data;
-	cmd_req->retry_cnt = timeout_in_sec * (1000 / CONFIG_SMP_CMD_RETRY_TIME);
+	cmd_req->retry_cnt = timeout_in_sec * (1000.0f / CONFIG_SMP_CMD_RETRY_TIME);
 	cmd_req->timestamp = k_uptime_get() + CONFIG_SMP_CMD_RETRY_TIME;
 	/* Increment reference for re-transmission and read smp header */
 	nb = net_buf_ref(nb);
