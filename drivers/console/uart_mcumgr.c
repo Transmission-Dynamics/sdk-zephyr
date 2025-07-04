@@ -225,11 +225,12 @@ int uart_mcumgr_send(const uint8_t *data, int len)
 
 
 #if defined(CONFIG_MCUMGR_TRANSPORT_UART_ASYNC)
+#define RX_TIMEOUT_US 10
 static void uart_mcumgr_setup(const struct device *uart)
 {
 	uart_callback_set(uart, uart_mcumgr_async, NULL);
 
-	uart_rx_enable(uart, async_buffer[0], sizeof(async_buffer[0]), 0);
+	uart_rx_enable(uart, async_buffer[0], sizeof(async_buffer[0]), RX_TIMEOUT_US);
 }
 #else
 static void uart_mcumgr_setup(const struct device *uart)
