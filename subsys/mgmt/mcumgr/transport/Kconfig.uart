@@ -48,6 +48,12 @@ config MCUMGR_TRANSPORT_UART_ASYNC_BUF_SIZE
 	help
 	  The size of single buffer for asynchronous RX.
 
+config MCUMGR_TRANSPORT_UART_ASYNC_RX_TIMEOUT
+	int "Async UART RX timeout"
+	default 1000
+	help
+	  Reception timeout for asynchronous UART API, in microseconds.
+
 endif # MCUMGR_TRANSPORT_UART_ASYNC
 
 endif # UART_ASYNC_API
