@@ -18,9 +18,6 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(uart_mcumgr, CONFIG_MCUMGR_TRANSPORT_LOG_LEVEL);
 
-#include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(uart_mcumgr, CONFIG_MCUMGR_TRANSPORT_LOG_LEVEL);
-
 static const struct device * uart_mcumgr_dev =
 	DEVICE_DT_GET(DT_CHOSEN(zephyr_uart_mcumgr));
 
